@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { moneyApi } from "../moneyApi";
-// ASSUMPTION: a function that returns the list of terms. Rename/adjust to whatever your api.js exposes.
+import { errorText, moneyApi } from "../moneyApi";
 import { getTerms } from "../api";
 import { Card, Table, Pill, Err, Field, inputStyle, btn, kes, when, useLoad, useAct } from "./ui";
 
@@ -8,7 +7,8 @@ import { Card, Table, Pill, Err, Field, inputStyle, btn, kes, when, useLoad, use
 export function ParentRefunds() {
   const { data, error, reload } = useLoad(moneyApi.myRefunds);
   const { act, error: aerr, busy } = useAct(reload);
-  const open = (data || []).filter((r) => r.status === "AWAITING_PARENT");
+  const refunds = toList(data);
+  const open = refunds.filter((r) => r.status === "AWAITING_PARENT");
   return (
     <div>
       <Err text={error || aerr} />
@@ -20,7 +20,7 @@ export function ParentRefunds() {
         </Card>
       ))}
       <Card title="My refund history">
-        <Table head={["Student", "Amount", "Choice", "Status"]} rows={(data || []).map((r) => [r.studentName, kes(r.amount), r.choice ? r.choice.replaceAll("_", " ") : "-", <Pill s={r.status} />])} />
+        <Table head={["Student", "Amount", "Choice", "Status"]} rows={refunds.map((r) => [r.studentName, kes(r.amount), r.choice ? r.choice.replaceAll("_", " ") : "-", <Pill s={r.status} />])} />
       </Card>
     </div>
   );
@@ -30,20 +30,28 @@ export function ParentRefunds() {
 const termIdOf = (t) => t?.termId ?? t?.id;
 const termLabelOf = (t) =>
   `${t?.termName ?? t?.name ?? `Term ${termIdOf(t)}`} ${t?.termYear ?? t?.year ?? ""}`.trim();
-const toList = (payload) => {
+function toList(payload) {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== "object") return [];
-  for (const key of ["terms", "items", "results", "data"]) {
-    if (Array.isArray(payload[key])) return payload[key];
-  }
-  return [];
-};
+  const candidates = [
+    payload.terms,
+    payload.items,
+    payload.results,
+    payload.data?.terms,
+    payload.data?.items,
+    payload.data?.results,
+    payload.data,
+    payload,
+  ];
+  return candidates.find(Array.isArray) || [];
+}
 
 /** Staff view: find overpayments, approve what parents chose. */
 export default function RefundsPage({ canApprove }) {
   const { data, error, reload } = useLoad(moneyApi.refunds);
   const { act, error: aerr, busy } = useAct(reload);
   const [terms, setTerms] = useState([]);
+  const [termsLoading, setTermsLoading] = useState(true);
   const [termsError, setTermsError] = useState("");
   const [termId, setTermId] = useState("");
   const [msg, setMsg] = useState("");
@@ -59,8 +67,10 @@ export default function RefundsPage({ canApprove }) {
         const current = list.find((t) => t.current || t.isCurrent || t.active) ?? list[list.length - 1];
         if (current) setTermId(String(termIdOf(current)));
       })
-      .catch(() => mounted && setTermsError("Could not load the terms."));
-    return () => { mounted = false; };
+      .catch((error) => mounted && setTermsError(errorText(error)))
+      .finally(() => mounted && setTermsLoading(false));
+    return () => { mounted = false;
+    };
   }, []);
 
   const selectedTerm = terms.find((t) => String(termIdOf(t)) === String(termId));
@@ -86,9 +96,13 @@ export default function RefundsPage({ canApprove }) {
             style={inputStyle}
             value={termId}
             onChange={(e) => { setTermId(e.target.value); setMsg(""); }}
-            disabled={terms.length === 0}
+            disabled={termsLoading || terms.length === 0}
           >
-            {terms.length === 0 && <option value="">Loading terms…</option>}
+            {termsLoading ? (
+              <option value="">Loading terms…</option>
+            ) : terms.length === 0 ? (
+              <option value="">No terms available</option>
+            ) : null}
             {terms.map((t) => (
               <option key={termIdOf(t)} value={termIdOf(t)}>{termLabelOf(t)}</option>
             ))}

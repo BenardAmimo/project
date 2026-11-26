@@ -96,14 +96,25 @@ export default function ExpensesPage({ canApprove, isSuperAdmin }) {
   const est = Number(f.estimatedAmount);
   const tier = !r || !est ? "" : est >= r.tenderFrom ? `Formal tender: open for ${r.tenderOpenDays} days, at least ${r.minQuotes} bids, Admin then Super Admin approve.`
     : est >= r.quotesFrom ? `Needs at least ${r.minQuotes} written quotes and one approval.` : "One approval, no quotes needed.";
+  const loadErrors = [
+    error && `Expense actions: ${error}`,
+    exps.error && `Expense requests: ${exps.error}`,
+    sups.error && `Expense suppliers: ${sups.error}`,
+    rules.error && `Expense rules: ${rules.error}`,
+  ].filter(Boolean);
 
   return (
     <div>
-      <Err text={error || exps.error || sups.error} />
-      <Card title="New purchase request">
+      <Err text={loadErrors.join(" · ")} />
+      <p style={{ fontSize: 13, color: "#555" }}>
+        This is the routine expense workflow and its manually maintained supplier list. For formal
+        procurement and supplier applications, use the Purchases tab.
+      </p>
+      <Card title="New expense request">
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "end" }}>
           <Field label="What is needed"><input style={inputStyle} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
           <Field label="Category"><input style={inputStyle} value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} /></Field>
+          <Field label="Description"><input style={{ ...inputStyle, minWidth: 280 }} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
           <Field label="Estimated cost"><input style={inputStyle} type="number" value={f.estimatedAmount} onChange={(e) => setF({ ...f, estimatedAmount: e.target.value })} /></Field>
           <button style={btn()} disabled={busy} onClick={() => act(async () => { await moneyApi.createExpense({ ...f, estimatedAmount: est }); setF({ title: "", description: "", category: "", estimatedAmount: "" }); })}>Raise request</button>
         </div>
@@ -113,7 +124,7 @@ export default function ExpensesPage({ canApprove, isSuperAdmin }) {
 
       {(exps.data || []).map((e) => <ExpenseRow key={e.id} e={e} suppliers={sups.data || []} canApprove={canApprove} isSuperAdmin={isSuperAdmin} act={act} busy={busy} />)}
 
-      <Card title="Suppliers">
+      <Card title="Expense suppliers (manual list)">
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "end" }}>
           <Field label="Name"><input style={inputStyle} value={s.name} onChange={(e) => setS({ ...s, name: e.target.value })} /></Field>
           <Field label="Contact"><input style={inputStyle} value={s.contactPerson} onChange={(e) => setS({ ...s, contactPerson: e.target.value })} /></Field>

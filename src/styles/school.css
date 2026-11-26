@@ -1,0 +1,181 @@
+.school-feature {
+  font-family: system-ui, sans-serif;
+}
+
+.school-feature.page {
+  display: block;
+  min-height: 0;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.school-feature .nav {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
+}
+
+.school-feature .nav a {
+  text-decoration: none;
+  color: #333;
+}
+
+.school-feature .nav a.active {
+  font-weight: 600;
+  color: #0b5;
+}
+
+.school-feature .card {
+  width: auto;
+  max-width: none;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  padding: 14px;
+  margin: 12px 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.school-feature .card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.school-feature .card h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.school-feature .row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.school-feature .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  min-width: 150px;
+}
+
+.school-feature input,
+.school-feature select,
+.school-feature textarea {
+  padding: 7px 9px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.school-feature button {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #0b5;
+  color: #fff;
+  cursor: pointer;
+}
+
+.school-feature button.secondary {
+  background: #e6e6e6;
+  color: #222;
+}
+
+.school-feature button.danger {
+  background: #c33;
+}
+
+.school-feature button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.school-feature .alert {
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+.school-feature .alert.error {
+  background: #fdecec;
+  color: #8a1f1f;
+}
+
+.school-feature .alert.ok {
+  background: #e8f7ee;
+  color: #14663a;
+}
+
+.school-feature .muted {
+  color: #777;
+  font-size: 13px;
+}
+
+.school-feature table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.school-feature th,
+.school-feature td {
+  text-align: left;
+  padding: 7px 6px;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+
+.school-feature .badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  background: #eee;
+}
+
+.school-feature .badge.approved,
+.school-feature .badge.paid,
+.school-feature .badge.active,
+.school-feature .badge.eligible,
+.school-feature .badge.applied,
+.school-feature .badge.awarded {
+  background: #d9f3e3;
+}
+
+.school-feature .badge.pending,
+.school-feature .badge.under_review,
+.school-feature .badge.submitted,
+.school-feature .badge.exams,
+.school-feature .badge.open_for_bids {
+  background: #fff1cc;
+}
+
+.school-feature .badge.rejected,
+.school-feature .badge.suspended,
+.school-feature .badge.blocked,
+.school-feature .badge.withdrawn {
+  background: #fadada;
+}
+
+.school-feature .tabs {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.school-feature .tabs button {
+  background: #eee;
+  color: #222;
+}
+
+.school-feature .tabs button.on {
+  background: #0b5;
+  color: #fff;
+}

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import LoginPage from './pages/LoginPage';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import Layout from './components/Layout';
@@ -10,7 +10,6 @@ import ParentsPage from './pages/ParentsPage';
 import TeachersPage from './pages/TeachersPage';
 import ClassesPage from './pages/ClassesPage';
 import SubjectPage from './pages/SubjectPage';
-import TermPage from './pages/TermPage';
 import AssignmentPage from './pages/AssignmentPage';
 import AttendancePage from './pages/AttendancePage';
 import ExamsPage from './pages/ExamsPage';
@@ -28,6 +27,21 @@ import ExamPeriodsPage from './pages/ExamPeriodsPage';
 import ReportsPage from './pages/ReportsPage';
 import ExamResultsPage from './pages/ExamResultsPage';
 import MoneyOutRoute from './pages/MoneyOutRoute';
+
+const SupplierRegister = lazy(() => import('./pages/supplier/Register'));
+const SupplierPortal = lazy(() => import('./pages/supplier/Portal'));
+const MyRequests = lazy(() => import('./pages/procurement/MyRequests'));
+const ProcurementDesk = lazy(() => import('./pages/procurement/Desk'));
+const Bids = lazy(() => import('./pages/procurement/Bids'));
+const ProcurementOrders = lazy(() => import('./pages/procurement/Orders'));
+const AcademicSetup = lazy(() => import('./pages/academic/Setup'));
+const Promotions = lazy(() => import('./pages/academic/Promotions'));
+
+const lazyPage = (Page, props = {}) => (
+  <Suspense fallback={<div className="page">Loading...</div>}>
+    <Page {...props} />
+  </Suspense>
+);
 
 setAuthToken(sessionStorage.getItem('token'));
 
@@ -68,6 +82,12 @@ const normalizeUserRole = (user) => {
   return { ...user, role: normalizedRole || user.role || (Array.isArray(user.roles) ? user.roles[0] : user.roles) };
 };
 
+const getUserRoles = (user) =>
+  [user?.role, user?.roles, user?.roleName]
+    .flatMap((role) => (Array.isArray(role) ? role : [role]))
+    .map(normalizeRoleFromBackend)
+    .filter(Boolean);
+
 const extractUserFromPayload = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
 
@@ -82,8 +102,8 @@ const extractUserFromPayload = (payload) => {
   }
 
   // Use root-level fields if response is already a user record
-  const { email, username, userName, name, firstName, lastName, role, roles } = payload;
-  if (email || username || name || firstName || lastName || role || roles) {
+  const { email, username, userName, name, firstName, lastName, role, roleName, roles } = payload;
+  if (email || username || name || firstName || lastName || role || roleName || roles) {
     return {
       email,
       username: username || userName,
@@ -91,6 +111,7 @@ const extractUserFromPayload = (payload) => {
       firstName,
       lastName,
       role,
+      roleName,
       roles,
     };
   }
@@ -101,8 +122,8 @@ const extractUserFromPayload = (payload) => {
 function RoleRoute({ allowedRoles = [], user, children }) {
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles.length === 0) return children;
-  const normalizedRole = normalizeRoleFromBackend(user.role || user.roles || user.roleName);
-  const allowed = allowedRoles.some((role) => normalizeRoleFromBackend(role) === normalizedRole);
+  const userRoles = getUserRoles(user);
+  const allowed = allowedRoles.some((role) => userRoles.includes(normalizeRoleFromBackend(role)));
   // FIX: send unauthorized users to /home, not "/" (which bounced them to the login page)
   return allowed ? children : <Navigate to="/home" replace />;
 }
@@ -158,6 +179,15 @@ function App() {
           path="/login"
           element={user ? <Navigate to="/home" replace /> : <LoginPage onLoginSuccess={handleLoginSuccess} />}
         />
+        <Route path="/suppliers/register" element={lazyPage(SupplierRegister)} />
+        <Route path="/supplier" element={<Navigate to="/home/supplier" replace />} />
+        <Route path="/procurement/my-requests" element={<Navigate to="/home/procurement/my-requests" replace />} />
+        <Route path="/procurement/desk" element={<Navigate to="/home/procurement/desk" replace />} />
+        <Route path="/procurement/evaluation" element={<Navigate to="/home/procurement/evaluation" replace />} />
+        <Route path="/procurement/awards" element={<Navigate to="/home/procurement/awards" replace />} />
+        <Route path="/procurement/orders" element={<Navigate to="/home/procurement/orders" replace />} />
+        <Route path="/academic/setup" element={<Navigate to="/home/academic/setup" replace />} />
+        <Route path="/academic/promotions" element={<Navigate to="/home/academic/promotions" replace />} />
         {/* Invite links from email land here: /setup-password#code=<token> */}
         <Route path="/setup-password" element={<SetupPasswordPage />} />
         <Route path="/join" element={<SetupPasswordPage />} />
@@ -184,7 +214,7 @@ function App() {
           <Route path="teachers" element={<RoleRoute allowedRoles={['Super Admin', 'Admin']} user={user}><TeachersPage /></RoleRoute>} />
           <Route path="classes" element={<RoleRoute allowedRoles={['Super Admin', 'Admin', 'Teacher']} user={user}><ClassesPage /></RoleRoute>} />
           <Route path="subjects" element={<RoleRoute allowedRoles={['Super Admin', 'Admin']} user={user}><SubjectPage /></RoleRoute>} />
-          <Route path="terms" element={<RoleRoute allowedRoles={['Super Admin', 'Admin']} user={user}><TermPage /></RoleRoute>} />
+          <Route path="terms" element={<Navigate to="/home/academic/setup" replace />} />
           <Route path="assignments" element={<RoleRoute allowedRoles={['Super Admin', 'Admin']} user={user}><AssignmentPage /></RoleRoute>} />
           <Route path="attendance" element={<RoleRoute allowedRoles={['Super Admin', 'Admin', 'Teacher']} user={user}><AttendancePage /></RoleRoute>} />
           <Route path="timetable" element={<RoleRoute allowedRoles={['Super Admin', 'Admin', 'Teacher']} user={user}><TimeTablePage /></RoleRoute>} />
@@ -201,6 +231,14 @@ function App() {
           <Route path="funds" element={<RoleRoute allowedRoles={['Super Admin', 'Admin']} user={user}><FundsPage /></RoleRoute>} />
           <Route path="support-staff" element={<RoleRoute allowedRoles={['Super Admin', 'Admin']} user={user}><SupportStaffPage /></RoleRoute>} />
           <Route path="money" element={<MoneyOutRoute />} />
+          <Route path="supplier" element={<RoleRoute allowedRoles={['Supplier']} user={user}>{lazyPage(SupplierPortal)}</RoleRoute>} />
+          <Route path="procurement/my-requests" element={<RoleRoute allowedRoles={['Department Head']} user={user}>{lazyPage(MyRequests)}</RoleRoute>} />
+          <Route path="procurement/desk" element={<RoleRoute allowedRoles={['Super Admin', 'Admin', 'Procurement Officer']} user={user}>{lazyPage(ProcurementDesk)}</RoleRoute>} />
+          <Route path="procurement/evaluation" element={<RoleRoute allowedRoles={['Evaluation Committee']} user={user}>{lazyPage(Bids, { mode: 'evaluate' })}</RoleRoute>} />
+          <Route path="procurement/awards" element={<RoleRoute allowedRoles={['Approver']} user={user}>{lazyPage(Bids, { mode: 'award' })}</RoleRoute>} />
+          <Route path="procurement/orders" element={<RoleRoute allowedRoles={['Super Admin', 'Admin', 'Procurement Officer', 'Receiving Officer', 'Finance Officer']} user={user}>{lazyPage(ProcurementOrders)}</RoleRoute>} />
+          <Route path="academic/setup" element={<RoleRoute allowedRoles={['Super Admin', 'Admin', 'Registrar']} user={user}>{lazyPage(AcademicSetup)}</RoleRoute>} />
+          <Route path="academic/promotions" element={<RoleRoute allowedRoles={['Academic Officer', 'Registrar']} user={user}>{lazyPage(Promotions)}</RoleRoute>} />
         </Route>
         <Route path="*" element={<Navigate to={user ? '/home' : '/login'} replace />} />
       </Routes>

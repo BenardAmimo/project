@@ -9,7 +9,7 @@ const links = [
   { to: '/home/teachers', label: 'Teachers', roles: ['Super Admin', 'Admin'] },
   { to: '/home/classes', label: 'Classes', roles: ['Super Admin', 'Admin'] },
   { to: '/home/subjects', label: 'Subjects', roles: ['Super Admin', 'Admin'] },
-  { to: '/home/terms', label: 'Terms', roles: ['Super Admin', 'Admin'] },
+  { to: '/home/academic/setup', label: 'Terms & Academic setup', roles: ['Super Admin', 'Admin', 'Registrar'] },
   { to: '/home/assignments', label: 'Assignments', roles: ['Super Admin', 'Admin'] },
   { to: '/home/attendance', label: 'Attendance', roles: ['Super Admin', 'Admin', 'Teacher'] },
   { to: '/home/timetable', label: 'Timetable', roles: ['Super Admin', 'Admin', 'Teacher'] },
@@ -26,6 +26,13 @@ const links = [
   { to: '/home/school-dates', label: 'Term & Exam Dates', roles: ['Parent'] },
   { to: '/home/support-staff', label: 'Support Staff', roles: ['Super Admin', 'Admin'] },
   { to: '/home/money', label: 'Money out', roles: ['Super Admin', 'Admin', 'Bursar', 'Teacher', 'Staff', 'Parent'] },
+  { to: '/home/academic/promotions', label: 'Promotions', roles: ['Academic Officer', 'Registrar'] },
+  { to: '/home/procurement/my-requests', label: 'My requests', roles: ['Department Head'] },
+  { to: '/home/procurement/desk', label: 'Procurement desk', roles: ['Super Admin', 'Admin', 'Procurement Officer'] },
+  { to: '/home/procurement/evaluation', label: 'Evaluate bids', roles: ['Evaluation Committee'] },
+  { to: '/home/procurement/awards', label: 'Awards', roles: ['Approver'] },
+  { to: '/home/procurement/orders', label: 'Orders', roles: ['Super Admin', 'Admin', 'Procurement Officer', 'Receiving Officer', 'Finance Officer'] },
+  { to: '/home/supplier', label: 'Supplier portal', roles: ['Supplier'] },
 ];
 
 const normalizeRole = (value) => {
@@ -46,17 +53,17 @@ const normalizeRole = (value) => {
     .join(' ');
 };
 
-const getUserRole = (user) => {
-  if (!user) return '';
-  if (user.role) return normalizeRole(user.role);
-  if (user.roles) return normalizeRole(user.roles);
-  return '';
-};
+const getUserRoles = (user) =>
+  [user?.role, user?.roles, user?.roleName]
+    .flatMap((role) => (Array.isArray(role) ? role : [role]))
+    .map(normalizeRole)
+    .filter(Boolean);
 
 function Layout({ user, onLogout }) {
-  const normalizedRole = getUserRole(user);
+  const userRoles = getUserRoles(user);
+  const normalizedRole = userRoles[0] || '';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navLinks = links.filter((link) => link.roles.includes(normalizedRole));
+  const navLinks = links.filter((link) => link.roles.some((role) => userRoles.includes(normalizeRole(role))));
 
   return (
     <div className="app-shell">

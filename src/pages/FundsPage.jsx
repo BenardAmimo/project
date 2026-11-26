@@ -4,6 +4,10 @@ import CollapsibleSection from '../components/CollapsibleSection';
 import { getStudents, getTerms, getClasses, getStudentFunds, createFundsForAllStudents } from '../api';
 
 const FUNDS_TYPES = ['FEES', 'SNACKS'];
+const getList = (data, key) => {
+  const candidates = [data?.[key], data?.data?.[key], data?.data, data];
+  return candidates.find(Array.isArray) || [];
+};
 
 function formatCurrency(value) {
   const number = Number(value ?? 0);
@@ -23,13 +27,39 @@ function FundsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [lookupError, setLookupError] = useState('');
+  const [lookupsLoading, setLookupsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ classesId: '', termId: '', amount: '', fundsType: 'FEES' });
 
   useEffect(() => {
-    getStudents().then((res) => setStudents(res.data.students || res.data || [])).catch(() => setStudents([]));
-    getTerms().then((res) => setTerms(res.data.terms || res.data || [])).catch(() => setTerms([]));
-    getClasses().then((res) => setClasses(res.data.classes || res.data || [])).catch(() => setClasses([]));
+    let mounted = true;
+    const errors = [];
+    const load = (request, key, setValue, label) =>
+      request()
+        .then((res) => {
+          if (mounted) setValue(getList(res.data, key));
+        })
+        .catch((err) => {
+          if (mounted) {
+            errors.push(
+              err.response?.data?.message || `Could not load ${label}: ${err.message || 'request failed'}`
+            );
+          }
+        });
+
+    Promise.all([
+      load(getStudents, 'students', setStudents, 'students'),
+      load(getTerms, 'terms', setTerms, 'terms'),
+      load(getClasses, 'classes', setClasses, 'classes'),
+    ]).finally(() => {
+      if (mounted) {
+        setLookupError(errors.join(' '));
+        setLookupsLoading(false);
+      }
+    });
+
+    return () => { mounted = false; };
   }, []);
 
   const loadFunds = (studentId) => {
@@ -81,6 +111,7 @@ function FundsPage() {
 
       {success && <p style={{ color: '#1e7e34' }}>{success}</p>}
       {error && <p style={{ color: '#c0392b' }}>{error}</p>}
+      {lookupError && <p role="alert" style={{ color: '#c0392b' }}>{lookupError}</p>}
 
       <div className="info-card" style={{ marginBottom: '1.5rem' }}>
         <h3>Check a Student's Fee Records</h3>
@@ -89,9 +120,17 @@ function FundsPage() {
           onChange={handleStudentSelect}
           style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid #ccc' }}
         >
-          <option value="">Select a student…</option>
+          <option value="">
+            {lookupsLoading
+              ? 'Loading students…'
+              : students.length
+                ? 'Select a student…'
+                : lookupError
+                  ? 'Students could not be loaded'
+                  : 'No students found'}
+          </option>
           {students.map((s) => (
-            <option key={s.studentId} value={s.studentId}>
+            <option key={s.studentId ?? s.id} value={s.studentId ?? s.id}>
               {`${s.firstName || ''} ${s.lastName || ''}`.trim()}
             </option>
           ))}

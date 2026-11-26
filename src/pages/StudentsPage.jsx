@@ -10,6 +10,8 @@ const getList = (data, key) => {
   return candidates.find(Array.isArray) || [];
 };
 
+const EMPTY_FORM = { firstName: '', lastName: '', parentId: '', classesId: '', gender: '', dateOfBirth: '' };
+
 function StudentsPage() {
   const [students, setStudents] = useState([]);
   const [parents, setParents] = useState([]);
@@ -17,7 +19,7 @@ function StudentsPage() {
   const [classes, setClasses] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ firstName: '', lastName: '', parentId: '', classesId: '', gender: '', age: '' });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -74,7 +76,7 @@ function StudentsPage() {
     ].join(' ').toLowerCase().includes(q));
   }, [search, students]);
 
-  const resetForm = () => setForm({ firstName: '', lastName: '', parentId: '', classesId: '', gender: '', age: '' });
+  const resetForm = () => setForm(EMPTY_FORM);
 
   const openCreateModal = () => {
     resetForm();
@@ -96,7 +98,7 @@ function StudentsPage() {
       parentId: student.parentId || student.parentId === 0 ? String(student.parentId) : '',
       classesId: student.classesId || student.classesId === 0 ? String(student.classesId) : '',
       gender: student.gender || '',
-      age: student.age ?? '',
+      dateOfBirth: student.dateOfBirth || '',
     });
     setEditingId(student.studentId);
     setError('');
@@ -119,37 +121,36 @@ function StudentsPage() {
       setError('Select a class.');
       return;
     }
+    if (!form.dateOfBirth) {
+      setError('Enter the date of birth.');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
 
+    const payload = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      parentId: Number(form.parentId),
+      classesId: Number(form.classesId),
+      gender: form.gender,
+      dateOfBirth: form.dateOfBirth,
+    };
+
     try {
       if (editingId) {
-        const res = await updateStudent(editingId, {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          parentId: Number(form.parentId),
-          classesId: Number(form.classesId),
-          gender: form.gender,
-          age: form.age ? Number(form.age) : undefined,
-        });
+        const res = await updateStudent(editingId, payload);
         setStudents((current) => current.map((s) => (s.studentId === editingId ? res.data : s)));
         setEditingId(null);
       } else {
-        const res = await createStudent({
-          firstName: form.firstName,
-          lastName: form.lastName,
-          parentId: Number(form.parentId),
-          classesId: Number(form.classesId),
-          gender: form.gender,
-          age: form.age ? Number(form.age) : undefined,
-        });
+        const res = await createStudent(payload);
         setStudents((current) => [res.data, ...current]);
       }
       resetForm();
       setModalOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not create student');
+      setError(err.response?.data?.message || (editingId ? 'Could not update student' : 'Could not create student'));
     } finally {
       setSubmitting(false);
     }
@@ -189,19 +190,22 @@ function StudentsPage() {
             <div className="info-card">
               <p>No students found. Adjust search or add a new student.</p>
             </div>
-          ) : filteredStudents.map((s) => (
-            <div key={s.studentId} className="info-card">
-              <h3>{`${s.firstName || ''} ${s.lastName || ''}`.trim()}</h3>
-              <p><strong>Class:</strong> {s.className}</p>
-                  {s.gender && <p><strong>Gender:</strong> {s.gender}</p>}
-                  {s.age != null && <p><strong>Age:</strong> {s.age}</p>}
-              <p><strong>Parent:</strong> {`${s.parentFirstName || ''} ${s.parentLastName || ''}`.trim()}</p>
-              <div style={{ marginTop: '0.75rem' }}>
-                <button className="secondary" onClick={() => beginEdit(s)}>Edit</button>
-                <button className="secondary" onClick={() => handleDelete(s.studentId)} style={{ marginLeft: '0.5rem' }}>Delete</button>
+          ) : filteredStudents.map((s) => {
+            const age = s.calculatedAge ?? s.age;
+            return (
+              <div key={s.studentId} className="info-card">
+                <h3>{`${s.firstName || ''} ${s.lastName || ''}`.trim()}</h3>
+                <p><strong>Class:</strong> {s.className}</p>
+                {s.gender && <p><strong>Gender:</strong> {s.gender}</p>}
+                {age != null && <p><strong>Age:</strong> {age}</p>}
+                <p><strong>Parent:</strong> {`${s.parentFirstName || ''} ${s.parentLastName || ''}`.trim()}</p>
+                <div style={{ marginTop: '0.75rem' }}>
+                  <button className="secondary" onClick={() => beginEdit(s)}>Edit</button>
+                  <button className="secondary" onClick={() => handleDelete(s.studentId)} style={{ marginLeft: '0.5rem' }}>Delete</button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CollapsibleSection>
 
@@ -228,13 +232,17 @@ function StudentsPage() {
               <option value="Other">Other</option>
             </select>
           </label>
-          <input
-            value={form.age}
-            onChange={(e) => setForm({ ...form, age: e.target.value })}
-            placeholder="Age"
-            type="number"
-            min="0"
-          />
+
+          <label>
+            Date of birth
+            <input
+              type="date"
+              value={form.dateOfBirth}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
+              required
+            />
+          </label>
 
           <label>
             Parent

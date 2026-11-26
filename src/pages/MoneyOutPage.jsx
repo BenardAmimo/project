@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import MyPayPage from "./MyPayPage";
 import OrdersPage from "./OrdersPage";
 import PayeesPage from "./PayeesPage";
@@ -7,6 +7,8 @@ import AdvancesAdminPage from "./AdvancesAdminPage";
 import TokensPage from "./TokensPage";
 import ExpensesPage from "./ExpensesPage";
 import RefundsPage, { ParentRefunds } from "./RefundsPage";
+
+const ProcurementDesk = lazy(() => import("./procurement/Desk"));
 
 /**
  * One page for everything money-out. Pass the signed-in user's roles, e.g.
@@ -36,7 +38,12 @@ export default function MoneyOutPage({ roles = [], user = null }) {
     ["payroll", "Payroll", finance, () => <PayrollPage canApprove={admin} />],
     ["advances", "Advances", finance, () => <AdvancesAdminPage canApprove={admin} />],
     ["tokens", "Tokens", admin, () => <TokensPage isAdmin={has("ADMIN")} isSuperAdmin={superAdmin} />],
-    ["expenses", "Purchases", finance, () => <ExpensesPage canApprove={admin} isSuperAdmin={superAdmin} />],
+    ["purchases", "Purchases", admin, () => (
+      <Suspense fallback={<p role="status">Loading purchases…</p>}>
+        <ProcurementDesk />
+      </Suspense>
+    )],
+    ["expenses", "Expenses", finance, () => <ExpensesPage canApprove={admin} isSuperAdmin={superAdmin} />],
     ["refunds", "Refunds", finance, () => <RefundsPage canApprove={admin} />],
   ].filter((t) => t[2]);
 

@@ -19,8 +19,8 @@ function LoginPage({ onLoginSuccess }) {
       const nested = extractUserFromPayload(payload.data);
       if (nested) return nested;
     }
-    const { email, username, userName, name, firstName, lastName, role, roles } = payload;
-    if (email || username || name || firstName || lastName || role || roles) {
+    const { email, username, userName, name, firstName, lastName, role, roleName, roles } = payload;
+    if (email || username || name || firstName || lastName || role || roleName || roles) {
       return {
         email,
         username: username || userName,
@@ -28,6 +28,7 @@ function LoginPage({ onLoginSuccess }) {
         firstName,
         lastName,
         role,
+        roleName,
         roles,
       };
     }
@@ -128,6 +129,9 @@ function LoginPage({ onLoginSuccess }) {
           <div className="form-footer">
             <p>
               Invited but don’t have a password yet? <a href="/join">Join with your invite code</a>
+            </p>
+            <p>
+              Selling to the school? <a href="/suppliers/register">Apply as a supplier</a>
             </p>
           </div>
         </div>
